@@ -1,6 +1,6 @@
 {
-  "appId": "web.os.on",
-  "appName": "WebOS",
+  "appId": "eb.os.on",
+  "appName": "WebS",
   "webDir": "www",
   "bundledWebRuntime": false
 }
