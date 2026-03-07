@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Red Magic Overlay</title>
+    <title>Red Magic Overlay Reborn</title>
     <script src="capacitor.js"></script>
     <style>
         :root {
@@ -14,14 +14,34 @@
         body, html {
             margin: 0; padding: 0; width: 100%; height: 100%;
             overflow: hidden;
-            background: transparent !important; /* Essencial para ver o jogo atrás */
+            background: transparent !important;
             font-family: 'Consolas', monospace;
             -webkit-user-select: none;
             user-select: none;
+            display: flex; align-items: center; justify-content: center;
         }
 
-        /* Container Lateral */
+        /* Botão de Ativação (Estilo Reator) */
+        #activator-btn {
+            width: 130px; height: 130px;
+            background: rgba(0,0,0,0.9);
+            border: 4px solid var(--main-color);
+            border-radius: 50%;
+            color: var(--main-color);
+            font-weight: bold;
+            display: flex; align-items: center; justify-content: center;
+            text-align: center;
+            cursor: pointer;
+            box-shadow: 0 0 25px var(--main-glow);
+            z-index: 20000;
+            transition: 0.3s;
+        }
+
+        #activator-btn:active { transform: scale(0.9); box-shadow: 0 0 40px var(--main-color); }
+
+        /* Container Lateral (Inicia Escondido) */
         #gamer-overlay-container {
+            display: none; /* Ativado via JS */
             position: fixed; top: 50%; right: 0;
             transform: translateY(-50%);
             width: 70px; padding: 15px 5px;
@@ -30,10 +50,9 @@
             -webkit-backdrop-filter: blur(8px);
             border-left: 3px solid var(--main-color);
             border-radius: 20px 0 0 20px;
-            display: flex; flex-direction: column; align-items: center; gap: 20px;
+            flex-direction: column; align-items: center; gap: 20px;
             z-index: 10000;
             box-shadow: -5px 0 15px rgba(0, 0, 0, 0.5);
-            transition: border-color 0.3s;
         }
 
         .overlay-btn {
@@ -45,14 +64,11 @@
             position: relative;
         }
 
-        .overlay-btn:active { transform: scale(0.9); }
-
         .btn-text {
             position: absolute; bottom: -18px; font-size: 8px;
             text-transform: uppercase; color: #aaa; width: 60px; text-align: center;
         }
 
-        /* Contador de FPS */
         #fps-display {
             display: none; position: fixed; bottom: 20px; left: 20px;
             padding: 8px 12px; background: rgba(0, 0, 0, 0.6);
@@ -60,7 +76,6 @@
             color: var(--main-color); font-weight: bold; z-index: 10001;
         }
 
-        /* Diálogo de Trava */
         #overlay-dialog {
             display: none; position: fixed; top: 50%; left: 50%;
             transform: translate(-50%, -50%); width: 220px;
@@ -69,16 +84,13 @@
         }
 
         input { width: 80%; padding: 10px; margin: 10px 0; background: #222; border: 1px solid #444; color: #fff; border-radius: 5px; }
-        button { padding: 8px 15px; background: var(--main-color); border: none; border-radius: 5px; font-weight: bold; }
+        button { padding: 8px 15px; background: var(--main-color); border: none; border-radius: 5px; font-weight: bold; cursor: pointer; }
 
-        @keyframes flow {
-            0%, 100% { border-color: rgba(255,255,255,0.2); }
-            50% { border-color: var(--main-color); }
-        }
-        .anim-active { animation: flow 1s infinite; }
     </style>
 </head>
-<body class="anim-active">
+<body>
+
+    <div id="activator-btn">INICIAR<br>BOOST</div>
 
     <div id="fps-display">FPS: <span id="fps-value">0</span></div>
 
@@ -109,54 +121,75 @@
     </div>
 
     <script>
-        // Acesso aos Plugins do Capacitor
-        // Em versões recentes (v5+), usamos window.Capacitor.Plugins
-        const { Camera, CameraResultType, Haptics } = window.Capacitor ? window.Capacitor.Plugins : { 
-            Camera: null, Haptics: null // Fallback para navegador
+        // Verificação robusta de plugins
+        const getPlugins = () => {
+            if (window.Capacitor && window.Capacitor.Plugins) {
+                return window.Capacitor.Plugins;
+            }
+            return null;
         };
 
         let targetFPS = 60;
         let isRed = false;
         let lastFrameTime = 0;
-        let frames = 0;
         let lastFpsUpdate = 0;
 
-        // 1. Lógica de FPS Real com Trava de Software
+        // --- ATIVAÇÃO DO PAINEL ---
+        document.getElementById('activator-btn').addEventListener('click', function() {
+            this.style.display = 'none';
+            document.getElementById('gamer-overlay-container').style.display = 'flex';
+            
+            // Alerta preventivo para MIUI
+            setTimeout(() => {
+                alert("MIUI Detectada: Se o painel sumir, ative 'Exibir janelas pop-up' nas config do app.");
+            }, 500);
+            
+            requestAnimationFrame(loop);
+        });
+
+        // --- LÓGICA DE FPS ---
         function loop(currentTime) {
             const deltaTime = currentTime - lastFrameTime;
             const interval = 1000 / targetFPS;
 
             if (deltaTime >= interval) {
-                // Atualiza o contador visual a cada 500ms para não piscar demais
                 if (currentTime > lastFpsUpdate + 500) {
                     const actualFPS = Math.round(1000 / deltaTime);
-                    document.getElementById('fps-value').innerText = actualFPS > targetFPS ? targetFPS : actualFPS;
+                    // Garante que o mostrador não ultrapasse o teto de forma bizarra
+                    document.getElementById('fps-value').innerText = actualFPS > targetFPS + 5 ? targetFPS : actualFPS;
                     lastFpsUpdate = currentTime;
-                    updateAnimationSpeed(actualFPS);
                 }
-                
                 lastFrameTime = currentTime - (deltaTime % interval);
             }
             requestAnimationFrame(loop);
         }
-        requestAnimationFrame(loop);
 
-        // 2. Mudar Imagem (Galeria Nativa)
+        // --- MUDAR IMAGEM ---
         document.getElementById('change-img').addEventListener('click', async () => {
-            if (!Camera) return alert("Plugin de câmera não encontrado!");
+            const plugins = getPlugins();
+            if (!plugins || !plugins.Camera) {
+                alert("Erro: Plugin Camera não carregado.");
+                return;
+            }
             try {
-                const image = await Camera.getPhoto({
+                const image = await plugins.Camera.getPhoto({
                     quality: 90,
                     allowEditing: false,
-                    resultType: CameraResultType.Uri,
+                    resultType: 'uri', // Simplificado para 'uri'
                     source: 'PHOTOS'
                 });
                 document.body.style.backgroundImage = `url(${image.webPath})`;
                 document.body.style.backgroundSize = 'cover';
-            } catch (err) { console.log("Cancelado"); }
+                document.body.style.backgroundPosition = 'center';
+            } catch (err) { console.log("User cancelled"); }
         });
 
-        // 3. Trava de FPS (Diálogo)
+        // --- OUTRAS FUNÇÕES ---
+        document.getElementById('toggle-fps').addEventListener('click', () => {
+            const el = document.getElementById('fps-display');
+            el.style.display = el.style.display === 'block' ? 'none' : 'block';
+        });
+
         document.getElementById('lock-fps').addEventListener('click', () => {
             document.getElementById('overlay-dialog').style.display = 'block';
         });
@@ -166,7 +199,8 @@
             if (val >= 10 && val <= 120) {
                 targetFPS = val;
                 document.getElementById('overlay-dialog').style.display = 'none';
-                if (Haptics) Haptics.vibrate();
+                const p = getPlugins();
+                if (p && p.Haptics) p.Haptics.vibrate();
             }
         });
 
@@ -174,23 +208,12 @@
             document.getElementById('overlay-dialog').style.display = 'none';
         });
 
-        // 4. Mostrar/Esconder FPS
-        document.getElementById('toggle-fps').addEventListener('click', () => {
-            const el = document.getElementById('fps-display');
-            el.style.display = el.style.display === 'block' ? 'none' : 'block';
-        });
-
-        // 5. Mudar Cor
         document.getElementById('change-color').addEventListener('click', () => {
             isRed = !isRed;
             document.documentElement.style.setProperty('--main-color', isRed ? '#ff0000' : '#ffd700');
-            if (Haptics) Haptics.impact({ style: 'LIGHT' });
+            const p = getPlugins();
+            if (p && p.Haptics) p.Haptics.impact({ style: 'LIGHT' });
         });
-
-        function updateAnimationSpeed(fps) {
-            const body = document.body;
-            body.style.animationDuration = fps < 20 ? '0.3s' : '1.5s';
-        }
     </script>
 </body>
 </html>
