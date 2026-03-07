@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Multi-Interpreter Mobile</title>
+    <title>Modular Interpreter</title>
     <style>
         :root {
             --bg-color: #1e272e;
@@ -11,7 +11,6 @@
             --cyan: #00d2d3;
             --red: #ff7675;
             --text: #ffffff;
-            --suggestion-bg: #252d31;
             --console-bg: #111;
         }
 
@@ -24,8 +23,6 @@
             height: 100vh; overflow: hidden;
         }
 
-        #editor-container { flex: 1; position: relative; display: flex; flex-direction: column; }
-
         #code-editor {
             flex: 1; background: var(--editor-bg); color: var(--text);
             border: none; padding: 15px; font-family: monospace;
@@ -33,186 +30,83 @@
         }
 
         #console-output {
-            height: 120px; background: var(--console-bg);
+            height: 150px; background: var(--console-bg);
             color: #2ecc71; padding: 10px; font-family: monospace;
             font-size: 14px; overflow-y: auto; border-top: 2px solid #333;
+            white-space: pre-wrap;
         }
-
-        #suggestion-box {
-            position: absolute; background: var(--suggestion-bg);
-            border: 1px solid #444; border-radius: 4px;
-            z-index: 100; max-height: 200px; overflow-y: auto;
-            min-width: 180px; display: none;
-        }
-
-        .suggestion-item {
-            padding: 10px 15px; display: flex; justify-content: space-between;
-            border-bottom: 1px solid #333; cursor: pointer;
-        }
-
-        .suggestion-item .label { color: var(--cyan); font-weight: bold; }
-        .suggestion-item .type { color: #888; font-size: 11px; }
 
         #toolbar { background: var(--bg-color); padding: 10px; border-top: 1px solid #333; }
 
-        .shortcut-bar { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; }
-        .shortcut-bar button {
-            background: transparent; color: var(--cyan); border: 1px solid var(--cyan);
-            padding: 5px 12px; border-radius: 4px; font-weight: bold;
+        .action-bar { display: flex; justify-content: space-between; }
+        
+        button {
+            background: transparent; border: 1px solid var(--cyan); color: var(--cyan);
+            padding: 8px 15px; border-radius: 4px; font-weight: bold; cursor: pointer;
         }
 
-        .action-bar { display: flex; justify-content: space-between; align-items: center; }
-        button.main-btn {
-            background: transparent; border: none; color: var(--cyan);
-            font-weight: bold; font-size: 14px; text-transform: uppercase; cursor: pointer;
-        }
-        .btn-red { color: var(--red) !important; }
+        .btn-red { border-color: var(--red); color: var(--red); }
     </style>
 </head>
 <body>
 
-    <div id="editor-container">
-        <textarea id="code-editor" spellcheck="false" placeholder="language brainfuck..."></textarea>
-        <div id="suggestion-box"></div>
-    </div>
+    <textarea id="code-editor" spellcheck="false" placeholder='Infor("Olá Mundo")'></textarea>
 
-    <div id="console-output">Console: Aguardando execução...</div>
+    <div id="console-output">Console pronto...</div>
 
     <div id="toolbar">
-        <div class="shortcut-bar">
-            <button onclick="insertText('+')">+</button>
-            <button onclick="insertText('-')">-</button>
-            <button onclick="insertText('>')">&gt;</button>
-            <button onclick="insertText('<')">&lt;</button>
-            <button onclick="insertText('[')">[</button>
-            <button onclick="insertText(']')">]</button>
-            <button onclick="insertText('.')">.</button>
-            <button onclick="insertText('(')">(</button>
-            <button onclick="insertText(')')">)</button>
-        </div>
-        
         <div class="action-bar">
-            <button class="main-btn" onclick="executarCodigo()">Executar</button>
-            <div style="display: flex; gap: 15px;">
-                <button class="main-btn btn-red" onclick="limparTudo()">Limpar</button>
-                <button class="main-btn" onclick="copiarCodigo()">Copiar</button>
+            <button onclick="executarCodigo()">EXECUTAR</button>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn-red" onclick="document.getElementById('code-editor').value = ''">LIMPAR</button>
+                <button onclick="copiar()">COPIAR</button>
             </div>
         </div>
     </div>
 
     <script type="module">
-        const editor = document.getElementById('code-editor');
-        const suggestionBox = document.getElementById('suggestion-box');
         const consoleOut = document.getElementById('console-output');
 
-        const dicionarioComandos = {
-            "portugol": [
-                { texto: "escreva", tipo: "Função" },
-                { texto: "inteiro", tipo: "Tipo" },
-                { texto: "se", tipo: "Estrutura" }
-            ],
-            "brainfuck": [
-                { texto: "++++++++", tipo: "Snippet" }
-            ]
-        };
-
-        window.insertText = (char) => {
-            const start = editor.selectionStart;
-            editor.setRangeText(char, start, editor.selectionEnd, 'end');
-            editor.focus();
-        };
-
-        window.limparTudo = () => {
-            if(confirm("Limpar tudo?")) {
-                editor.value = '';
-                consoleOut.innerHTML = 'Console limpo.';
-                suggestionBox.style.display = 'none';
-            }
-        };
-
-        window.copiarCodigo = () => {
-            navigator.clipboard.writeText(editor.value);
-            alert("Código copiado!");
-        };
-
-        editor.addEventListener('input', () => {
-            const linhas = editor.value.split('\n');
-            if (linhas[0] && linhas[0].toLowerCase().startsWith('language ')) {
-                const lang = linhas[0].replace(/language /i, '').trim().toLowerCase();
-                checarSugestoes(lang);
-            }
-        });
-
-        function checarSugestoes(lang) {
-            const cursorPosition = editor.selectionStart;
-            const textoAteCursor = editor.value.substring(0, cursorPosition);
-            const palavras = textoAteCursor.split(/[\s\n\+\-\[\]\(\)]/);
-            const ultimaPalavra = palavras[palavras.length - 1].toLowerCase();
-
-            if (ultimaPalavra.length > 0 && dicionarioComandos[lang]) {
-                const matches = dicionarioComandos[lang].filter(c => c.texto.startsWith(ultimaPalavra));
-                renderizarSugestoes(matches, ultimaPalavra);
-            } else {
-                suggestionBox.style.display = 'none';
-            }
-        }
-
-        function renderizarSugestoes(lista, termo) {
-            if (lista.length === 0) { suggestionBox.style.display = 'none'; return; }
-            suggestionBox.innerHTML = '';
-            lista.forEach(item => {
-                const div = document.createElement('div');
-                div.className = 'suggestion-item';
-                div.innerHTML = `<span class="label">${item.texto}</span><span class="type">${item.tipo}</span>`;
-                div.onclick = () => {
-                    const inicio = editor.selectionStart - termo.length;
-                    editor.setRangeText(item.texto, inicio, editor.selectionStart, 'end');
-                    suggestionBox.style.display = 'none';
-                    editor.focus();
-                };
-                suggestionBox.appendChild(div);
-            });
-            suggestionBox.style.display = 'block';
-            suggestionBox.style.bottom = '180px'; 
-            suggestionBox.style.left = '20px';
-        }
-
         window.executarCodigo = async () => {
-            const code = editor.value;
-            const lines = code.split('\n');
-            
-            if (!lines[0] || !lines[0].toLowerCase().startsWith('language ')) {
-                alert("Erro: A primeira linha deve ser 'language NOME'");
-                return;
-            }
+            const code = document.getElementById('code-editor').value;
+            const linhas = code.split('\n');
+            consoleOut.innerHTML = "Iniciando processamento...\n";
 
-            const lang = lines[0].replace(/language /i, '').trim().toLowerCase();
+            for (let linha of linhas) {
+                linha = linha.trim();
+                if (!linha) continue;
 
-            if (!lang) {
-                alert("Erro: Nome da linguagem inválido.");
-                return;
-            }
+                // Regex para capturar: NomeDaFuncao e o Conteudo entre ()
+                const match = linha.match(/^(\w+)\((.*)\)$/);
 
-            consoleOut.innerHTML = `Carregando interpretador: ${lang}...`;
+                if (match) {
+                    const nomeArquivo = match[1]; // Ex: Infor
+                    let conteudoRaw = match[2];  // Ex: "Olá Mundo" ou 123
+                    
+                    // Limpando aspas (remove " ou ' no início e fim)
+                    const conteudoLimpo = conteudoRaw.replace(/^["']|["']$/g, '');
 
-            try {
-                const modulePath = `./interpreters/${lang}.js`;
-                const module = await import(modulePath);
+                    try {
+                        // Tenta importar o arquivo JS da pasta functions
+                        const modulePath = `./functions/${nomeArquivo}.js`;
+                        const funcModule = await import(modulePath);
 
-                if (typeof module.run !== "function") {
-                    throw new Error("Função 'run' não exportada.");
+                        // Executa a lógica do arquivo passando o conteúdo limpo
+                        if (funcModule.run) {
+                            funcModule.run(conteudoLimpo);
+                            consoleOut.innerHTML += `> Executado: ${nomeArquivo}\n`;
+                        }
+                    } catch (e) {
+                        consoleOut.innerHTML += `<span style="color:var(--red)">Erro: Função '${nomeArquivo}' não encontrada ou erro no arquivo.</span>\n`;
+                    }
                 }
-
-                consoleOut.innerHTML = `Executando...<br>`;
-                await module.run(code);
-
-            } catch (e) {
-                console.error(e);
-                consoleOut.innerHTML = `<span style="color:red">
-                Erro: Interpretador '${lang}' não encontrado ou inválido.
-                </span>`;
             }
+        };
+
+        window.copiar = () => {
+            navigator.clipboard.writeText(document.getElementById('code-editor').value);
+            alert("Copiado!");
         };
     </script>
 </body>
-  </html>
+</html>
