@@ -2,13 +2,15 @@
   "name": "ndj-lib-reborn",
   "version": "1.0.0",
   "dependencies": {
-    "discord.js": "^14.11.0",
-    "@capacitor/filesystem": "^5.0.0",
     "@capacitor/android": "^5.0.0",
     "@capacitor/core": "^5.0.0",
+    "@capacitor/app": "^5.0.0",
+    "@capacitor/filesystem": "^5.0.0",
     "@capacitor/assets": "^3.0.0",
     "@capacitor/local-notifications": "^5.0.0",
-    "@capacitor/app": "^5.0.0"
+    "@capacitor/camera": "^5.0.0",       // + Necessário para o botão "Mudar Imagem"
+    "@capacitor/haptics": "^5.0.0",      // + Para vibração estilo Red Magic
+    "@capacitor/preferences": "^5.0.0"   // + Para salvar a cor/imagem escolhida e não resetar ao fechar
   },
   "devDependencies": {
     "@capacitor/cli": "^5.0.0"
