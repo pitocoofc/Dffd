@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Modular Interpreter</title>
+    <title>Ndj-Interpreter Mobile</title>
     <style>
         :root {
             --bg-color: #1e272e;
             --editor-bg: #2d3436;
             --cyan: #00d2d3;
             --red: #ff7675;
+            --green: #2ecc71;
             --text: #ffffff;
             --console-bg: #111;
         }
@@ -30,19 +31,20 @@
         }
 
         #console-output {
-            height: 150px; background: var(--console-bg);
-            color: #2ecc71; padding: 10px; font-family: monospace;
+            height: 140px; background: var(--console-bg);
+            color: var(--green); padding: 10px; font-family: monospace;
             font-size: 14px; overflow-y: auto; border-top: 2px solid #333;
             white-space: pre-wrap;
         }
 
         #toolbar { background: var(--bg-color); padding: 10px; border-top: 1px solid #333; }
 
-        .action-bar { display: flex; justify-content: space-between; }
+        .action-bar { display: flex; justify-content: space-between; align-items: center; }
         
         button {
             background: transparent; border: 1px solid var(--cyan); color: var(--cyan);
-            padding: 8px 15px; border-radius: 4px; font-weight: bold; cursor: pointer;
+            padding: 10px 20px; border-radius: 4px; font-weight: bold; cursor: pointer;
+            text-transform: uppercase; font-size: 12px;
         }
 
         .btn-red { border-color: var(--red); color: var(--red); }
@@ -50,62 +52,114 @@
 </head>
 <body>
 
-    <textarea id="code-editor" spellcheck="false" placeholder='Infor("Olá Mundo")'></textarea>
+    <textarea id="code-editor" spellcheck="false" placeholder='var "Nome" = 10&#10;Infor(Nome + 5)'></textarea>
 
-    <div id="console-output">Console pronto...</div>
+    <div id="console-output">Aguardando execução...</div>
 
     <div id="toolbar">
         <div class="action-bar">
-            <button onclick="executarCodigo()">EXECUTAR</button>
+            <button onclick="executarCodigo()">Executar Projeto</button>
             <div style="display: flex; gap: 10px;">
-                <button class="btn-red" onclick="document.getElementById('code-editor').value = ''">LIMPAR</button>
-                <button onclick="copiar()">COPIAR</button>
+                <button class="btn-red" onclick="limpar()">Limpar</button>
             </div>
         </div>
     </div>
 
     <script type="module">
+        const editor = document.getElementById('code-editor');
         const consoleOut = document.getElementById('console-output');
+        let MEMORIA = {};
 
-        window.executarCodigo = async () => {
-            const code = document.getElementById('code-editor').value;
-            const linhas = code.split('\n');
-            consoleOut.innerHTML = "Iniciando processamento...\n";
-
-            for (let linha of linhas) {
-                linha = linha.trim();
-                if (!linha) continue;
-
-                // Regex para capturar: NomeDaFuncao e o Conteudo entre ()
-                const match = linha.match(/^(\w+)\((.*)\)$/);
-
-                if (match) {
-                    const nomeArquivo = match[1]; // Ex: Infor
-                    let conteudoRaw = match[2];  // Ex: "Olá Mundo" ou 123
-                    
-                    // Limpando aspas (remove " ou ' no início e fim)
-                    const conteudoLimpo = conteudoRaw.replace(/^["']|["']$/g, '');
-
-                    try {
-                        // Tenta importar o arquivo JS da pasta functions
-                        const modulePath = `./functions/${nomeArquivo}.js`;
-                        const funcModule = await import(modulePath);
-
-                        // Executa a lógica do arquivo passando o conteúdo limpo
-                        if (funcModule.run) {
-                            funcModule.run(conteudoLimpo);
-                            consoleOut.innerHTML += `> Executado: ${nomeArquivo}\n`;
-                        }
-                    } catch (e) {
-                        consoleOut.innerHTML += `<span style="color:var(--red)">Erro: Função '${nomeArquivo}' não encontrada ou erro no arquivo.</span>\n`;
-                    }
-                }
-            }
+        window.limpar = () => {
+            editor.value = '';
+            consoleOut.innerHTML = 'Aguardando execução...';
+            consoleOut.style.color = 'var(--green)';
         };
 
-        window.copiar = () => {
-            navigator.clipboard.writeText(document.getElementById('code-editor').value);
-            alert("Copiado!");
+        // Função que limpa e identifica o valor (número, texto ou variável)
+        function processarValor(valor) {
+            valor = valor.trim();
+            
+            // 1. Texto com aspas
+            if (/^["'].*["']$/.test(valor)) {
+                return valor.replace(/^["']|["']$/g, '');
+            }
+
+            // 2. Operações matemáticas puras
+            if (/^[0-9\s\+\-\*\/\(\)\.]+$/.test(valor)) {
+                return eval(valor);
+            }
+
+            // 3. Variáveis e Operações com variáveis
+            let expressao = valor;
+            // Substitui nomes de variáveis na expressão pelos valores na MEMORIA
+            for (let nome in MEMORIA) {
+                const regex = new RegExp(`\\b${nome}\\b`, 'g');
+                let valorMemoria = MEMORIA[nome];
+                // Se for string, coloca aspas para o eval não quebrar
+                if (typeof valorMemoria === 'string') valorMemoria = `"${valorMemoria}"`;
+                expressao = expressao.replace(regex, valorMemoria);
+            }
+
+            try {
+                return eval(expressao);
+            } catch (e) {
+                throw new Error(`Variável ou valor '${valor}' não definido.`);
+            }
+        }
+
+        window.executarCodigo = async () => {
+            const linhas = editor.value.split('\n');
+            consoleOut.innerHTML = "";
+            consoleOut.style.color = 'var(--green)';
+            MEMORIA = {}; // Limpa a memória a cada nova execução
+
+            try {
+                for (let i = 0; i < linhas.length; i++) {
+                    let linha = linhas[i].trim();
+                    if (!linha) continue;
+
+                    // Lógica de Variável: var "X" = 10
+                    if (linha.startsWith('var ')) {
+                        const varMatch = linha.match(/var\s+["']?(.+?)["']?\s*=\s*(.*)/);
+                        if (!varMatch) throw new Error(`Sintaxe incorreta na linha ${i+1}`);
+                        
+                        const nomeVar = varMatch[1].trim();
+                        const valorRaw = varMatch[2].trim();
+                        MEMORIA[nomeVar] = processarValor(valorRaw);
+                    } 
+                    
+                    // Lógica de Funções: Nome(Parametro)
+                    else if (linha.includes('(') && linha.endsWith(')')) {
+                        const funcMatch = linha.match(/^(\w+)\((.*)\)$/);
+                        if (!funcMatch) throw new Error(`Erro de função na linha ${i+1}`);
+
+                        const nomeFuncao = funcMatch[1];
+                        const parametro = processarValor(funcMatch[2]);
+
+                        const modulePath = `./functions/${nomeFuncao}.js`;
+                        const funcModule = await import(modulePath);
+                        
+                        if (funcModule.run) {
+                            funcModule.run(parametro);
+                        } else {
+                            throw new Error(`Arquivo ${nomeFuncao}.js não tem a função run.`);
+                        }
+                    } 
+                    else {
+                        throw new Error(`Comando desconhecido na linha ${i+1}`);
+                    }
+                }
+
+                // Se chegou até aqui sem erros
+                consoleOut.innerHTML += "\nExecution completed✅";
+
+            } catch (err) {
+                consoleOut.style.color = 'var(--red)';
+                consoleOut.innerHTML += `\n[ERRO]: ${err.message}`;
+                consoleOut.innerHTML += "\nExecution failed⚠️";
+                // O loop para automaticamente pelo catch (trava o código)
+            }
         };
     </script>
 </body>
