@@ -8,9 +8,9 @@
     "@capacitor/filesystem": "^5.0.0",
     "@capacitor/assets": "^3.0.0",
     "@capacitor/local-notifications": "^5.0.0",
-    "@capacitor/camera": "^5.0.0",       // + Necessário para o botão "Mudar Imagem"
-    "@capacitor/haptics": "^5.0.0",      // + Para vibração estilo Red Magic
-    "@capacitor/preferences": "^5.0.0"   // + Para salvar a cor/imagem escolhida e não resetar ao fechar
+    "@capacitor/camera": "^5.0.0",        
+    "@capacitor/haptics": "^5.0.0",      
+    "@capacitor/preferences": "^5.0.0"   
   },
   "devDependencies": {
     "@capacitor/cli": "^5.0.0"
