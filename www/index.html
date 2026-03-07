@@ -3,304 +3,194 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Gamer Overlay Minimal</title>
+    <title>Red Magic Overlay</title>
+    <script src="capacitor.js"></script>
     <style>
-        /* --- CSS BASE E OVERLAY --- */
+        :root {
+            --main-color: #ffd700;
+            --main-glow: 0 0 10px rgba(255, 215, 0, 0.3);
+        }
+
         body, html {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
+            margin: 0; padding: 0; width: 100%; height: 100%;
             overflow: hidden;
-            background: transparent; /* Permite ver o app por trás */
-            font-family: 'Consolas', 'Monaco', 'Courier New', monospace; /* Fonte Gamer */
-            -webkit-touch-callout: none; /* Desativa menus de toque longo */
-            -webkit-user-select: none; /* Desativa seleção de texto */
+            background: transparent !important; /* Essencial para ver o jogo atrás */
+            font-family: 'Consolas', monospace;
+            -webkit-user-select: none;
             user-select: none;
         }
 
-        /* Container principal do painel lateral */
+        /* Container Lateral */
         #gamer-overlay-container {
-            position: absolute;
-            top: 50%;
-            right: 0;
+            position: fixed; top: 50%; right: 0;
             transform: translateY(-50%);
-            width: 70px; /* Largura do painel */
-            height: auto;
-            max-height: 80%; /* Não ocupa a tela toda */
-            padding: 15px 5px;
-            
-            /* Visual Translúcido do Red Magic */
-            background: rgba(10, 10, 10, 0.75);
-            backdrop-filter: blur(8px); /* Efeito de vidro jateado premium */
+            width: 70px; padding: 15px 5px;
+            background: rgba(10, 10, 10, 0.85);
+            backdrop-filter: blur(8px);
             -webkit-backdrop-filter: blur(8px);
-            
-            /* Borda lateral neon */
-            border-left: 3px solid var(--main-color, #ffd700);
+            border-left: 3px solid var(--main-color);
             border-radius: 20px 0 0 20px;
-            box-shadow: -5px 0 15px rgba(0, 0, 0, 0.5), var(--main-glow, 0 0 10px rgba(255, 215, 0, 0.3));
-            
-            /* Alinhamento dos botões */
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 15px; /* Espaço entre botões */
-            z-index: 10000; /* Garante que fique por cima */
-            
-            /* Transição de cor suave */
-            transition: border-left 0.3s ease, box-shadow 0.3s ease;
+            display: flex; flex-direction: column; align-items: center; gap: 20px;
+            z-index: 10000;
+            box-shadow: -5px 0 15px rgba(0, 0, 0, 0.5);
+            transition: border-color 0.3s;
         }
 
-        /* --- ESTILO DOS BOTÕES --- */
         .overlay-btn {
-            width: 50px;
-            height: 50px;
+            width: 50px; height: 50px;
             background: rgba(30, 30, 30, 0.6);
-            border: 2px solid #333; /* Borda escura padrão */
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #ccc;
-            font-size: 1.2rem;
-            cursor: pointer;
+            border: 1px solid #444; border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            color: var(--main-color); cursor: pointer;
             position: relative;
-            
-            /* Feedback visual no clique */
-            transition: background 0.1s ease, border-color 0.1s ease, transform 0.1s ease;
         }
 
-        .overlay-btn:active {
-            background: rgba(60, 60, 60, 0.9);
-            border-color: var(--main-color, #ffd700);
-            transform: scale(0.95); /* Efeito de apertar */
+        .overlay-btn:active { transform: scale(0.9); }
+
+        .btn-text {
+            position: absolute; bottom: -18px; font-size: 8px;
+            text-transform: uppercase; color: #aaa; width: 60px; text-align: center;
         }
 
-        /* Ícone e Texto dos Botões */
-        .overlay-btn-icon {
-            font-size: 1.5rem;
-            color: var(--main-color, #ffd700); /* Cor neon */
-            margin-bottom: 2px;
-        }
-
-        .overlay-btn-text {
-            position: absolute;
-            bottom: -15px;
-            font-size: 0.6rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: #999;
-            width: 100%;
-            text-align: center;
-            white-space: nowrap;
-        }
-
-        /* Botão Ativo/Selecionado */
-        .overlay-btn.active {
-            border-color: var(--main-color, #ffd700);
-            background: rgba(255, 215, 0, 0.1);
-        }
-
-        /* --- FPS COUNTER E PAINEL DE CONFIGURE --- */
+        /* Contador de FPS */
         #fps-display {
-            display: none; /* Escondido por padrão */
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
-            padding: 8px 12px;
-            background: rgba(0, 0, 0, 0.6);
-            backdrop-filter: blur(4px);
-            border: 1px solid var(--main-color, #ffd700);
-            border-radius: 8px;
-            color: var(--main-color, #ffd700);
-            font-weight: bold;
-            font-size: 1.2rem;
-            pointer-events: none; /* Não clica nele */
-            z-index: 10001;
+            display: none; position: fixed; bottom: 20px; left: 20px;
+            padding: 8px 12px; background: rgba(0, 0, 0, 0.6);
+            border: 1px solid var(--main-color); border-radius: 8px;
+            color: var(--main-color); font-weight: bold; z-index: 10001;
         }
 
-        #fps-display span {
-            font-size: 0.8rem;
-            color: #aaa;
-            margin-left: 3px;
-        }
-
-        /* Inputs e Diálogos Simulados */
+        /* Diálogo de Trava */
         #overlay-dialog {
-            display: none; /* Escondido */
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 250px;
-            padding: 20px;
-            background: #111;
-            border: 2px solid #333;
-            border-radius: 12px;
-            color: #eee;
-            z-index: 10002;
-            text-align: center;
+            display: none; position: fixed; top: 50%; left: 50%;
+            transform: translate(-50%, -50%); width: 220px;
+            padding: 20px; background: #111; border: 2px solid #333;
+            border-radius: 15px; color: #eee; z-index: 10002; text-align: center;
         }
 
-        #overlay-dialog input {
-            width: 80%;
-            padding: 10px;
-            margin: 10px 0;
-            background: #222;
-            border: 1px solid #444;
-            color: #fff;
-            border-radius: 6px;
-        }
+        input { width: 80%; padding: 10px; margin: 10px 0; background: #222; border: 1px solid #444; color: #fff; border-radius: 5px; }
+        button { padding: 8px 15px; background: var(--main-color); border: none; border-radius: 5px; font-weight: bold; }
 
-        #overlay-dialog button {
-            padding: 8px 15px;
-            background: var(--main-color, #ffd700);
-            color: #000;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
+        @keyframes flow {
+            0%, 100% { border-color: rgba(255,255,255,0.2); }
+            50% { border-color: var(--main-color); }
         }
-
-        /* --- ANIMAÇÃO DE FLUXO (SIMULADA PELO FPS) --- */
-        /* A velocidade da borda lateral muda com o FPS */
-        @keyframes border-flow {
-            0% { border-left-color: rgba(255, 215, 0, 0.3); }
-            50% { border-left-color: var(--main-color); }
-            100% { border-left-color: rgba(255, 215, 0, 0.3); }
-        }
-
-        .flow-anim {
-            animation: border-flow 1s infinite ease-in-out;
-        }
-
+        .anim-active { animation: flow 1s infinite; }
     </style>
 </head>
-<body class="flow-anim"> <div id="fps-display"><span>FPS</span><span id="fps-value">0</span></div>
+<body class="anim-active">
+
+    <div id="fps-display">FPS: <span id="fps-value">0</span></div>
 
     <div id="gamer-overlay-container">
-        
-        <div class="overlay-btn" onclick="toggleFPSDisplay()">
-            <div class="overlay-btn-icon">60</div>
-            <div class="overlay-btn-text">FPS</div>
+        <div class="overlay-btn" id="toggle-fps">
+            <span style="font-size: 18px;">📊</span>
+            <span class="btn-text">FPS</span>
         </div>
-
-        <div class="overlay-btn" onclick="triggerImageChange()">
-            <div class="overlay-btn-icon">📷</div>
-            <div class="overlay-btn-text">Mudar Img</div>
+        <div class="overlay-btn" id="change-img">
+            <span style="font-size: 18px;">📷</span>
+            <span class="btn-text">Imagem</span>
         </div>
-
-        <div class="overlay-btn" onclick="openFPSLockDialog()">
-            <div class="overlay-btn-icon">🔒</div>
-            <div class="overlay-btn-text">Bloquear</div>
+        <div class="overlay-btn" id="lock-fps">
+            <span style="font-size: 18px;">🔒</span>
+            <span class="btn-text">Travar</span>
         </div>
-
-        <div class="overlay-btn" onclick="toggleColorTheme()">
-            <div class="overlay-btn-icon">🔥</div>
-            <div class="overlay-btn-text">Cor</div>
+        <div class="overlay-btn" id="change-color">
+            <span style="font-size: 18px;">🔥</span>
+            <span class="btn-text">Cor</span>
         </div>
-
     </div>
 
     <div id="overlay-dialog">
-        <h3 id="dialog-title">Bloqueio de FPS</h3>
-        <p>Digite o valor do FPS alvo (ex: 30):</p>
-        <input type="number" id="fps-input" min="10" max="120" placeholder="Ex: 30">
-        <br>
-        <button onclick="applyFPSLock()">Aplicar</button>
-        <button onclick="closeDialog()" style="background: #444; color: white;">Cancelar</button>
+        <h3>Travar FPS</h3>
+        <input type="number" id="fps-input" placeholder="Ex: 30">
+        <button id="apply-lock">APLICAR</button>
+        <button id="close-lock" style="background:#444; color:#fff; margin-top:5px">X</button>
     </div>
 
     <script>
-        // CONFIGURAÇÃO GLOBAL
-        let isFPSActive = false;
-        let isRedTheme = false;
-        let currentFPS = 60; // FPS Simulador inicial
+        // Acesso aos Plugins do Capacitor
+        // Em versões recentes (v5+), usamos window.Capacitor.Plugins
+        const { Camera, CameraResultType, Haptics } = window.Capacitor ? window.Capacitor.Plugins : { 
+            Camera: null, Haptics: null // Fallback para navegador
+        };
 
-        // --- 1. MOSTRAR FPS ---
-        function toggleFPSDisplay() {
-            isFPSActive = !isFPSActive;
-            const display = document.getElementById('fps-display');
-            display.style.display = isFPSActive ? 'block' : 'none';
-        }
-
-        // Simulação básica de FPS (Em um app real, Capacitor precisaria ler o FPS real)
-        let lastTime = performance.now();
+        let targetFPS = 60;
+        let isRed = false;
+        let lastFrameTime = 0;
         let frames = 0;
-        function calculateFPS() {
-            let now = performance.now();
-            frames++;
-            if (now > lastTime + 1000) {
-                currentFPS = Math.round((frames * 1000) / (now - lastTime));
-                document.getElementById('fps-value').innerText = currentFPS;
-                frames = 0;
-                lastTime = now;
-                updateAnimationSpeed(); // Atualiza velocidade da animação baseada no FPS
+        let lastFpsUpdate = 0;
+
+        // 1. Lógica de FPS Real com Trava de Software
+        function loop(currentTime) {
+            const deltaTime = currentTime - lastFrameTime;
+            const interval = 1000 / targetFPS;
+
+            if (deltaTime >= interval) {
+                // Atualiza o contador visual a cada 500ms para não piscar demais
+                if (currentTime > lastFpsUpdate + 500) {
+                    const actualFPS = Math.round(1000 / deltaTime);
+                    document.getElementById('fps-value').innerText = actualFPS > targetFPS ? targetFPS : actualFPS;
+                    lastFpsUpdate = currentTime;
+                    updateAnimationSpeed(actualFPS);
+                }
+                
+                lastFrameTime = currentTime - (deltaTime % interval);
             }
-            requestAnimationFrame(calculateFPS);
+            requestAnimationFrame(loop);
         }
-        calculateFPS(); // Inicia o contador
+        requestAnimationFrame(loop);
 
-        // --- 2. MUDAR IMAGEM ---
-        function triggerImageChange() {
-            alert("Em um app Capacitor real, isso abriria o seletor de galeria nativo (@capacitor/camera).");
-            // Exemplo de como funcionaria (com imagem fixa):
-            // document.body.style.backgroundImage = 'url(https://via.placeholder.com/1920x1080/ff0000/000000.png?text=Nova+Imagem)';
-        }
+        // 2. Mudar Imagem (Galeria Nativa)
+        document.getElementById('change-img').addEventListener('click', async () => {
+            if (!Camera) return alert("Plugin de câmera não encontrado!");
+            try {
+                const image = await Camera.getPhoto({
+                    quality: 90,
+                    allowEditing: false,
+                    resultType: CameraResultType.Uri,
+                    source: 'PHOTOS'
+                });
+                document.body.style.backgroundImage = `url(${image.webPath})`;
+                document.body.style.backgroundSize = 'cover';
+            } catch (err) { console.log("Cancelado"); }
+        });
 
-        // --- 3. BLOQUEIO DE FPS ---
-        function openFPSLockDialog() {
+        // 3. Trava de FPS (Diálogo)
+        document.getElementById('lock-fps').addEventListener('click', () => {
             document.getElementById('overlay-dialog').style.display = 'block';
-        }
+        });
 
-        function closeDialog() {
+        document.getElementById('apply-lock').addEventListener('click', () => {
+            const val = parseInt(document.getElementById('fps-input').value);
+            if (val >= 10 && val <= 120) {
+                targetFPS = val;
+                document.getElementById('overlay-dialog').style.display = 'none';
+                if (Haptics) Haptics.vibrate();
+            }
+        });
+
+        document.getElementById('close-lock').addEventListener('click', () => {
             document.getElementById('overlay-dialog').style.display = 'none';
-        }
+        });
 
-        function applyFPSLock() {
-            const input = document.getElementById('fps-input');
-            const lockFPS = input.value;
-            if (lockFPS && lockFPS >= 10 && lockFPS <= 120) {
-                alert(`FPS Bloqueado em: ${lockFPS} FPS (Fake).`);
-                closeDialog();
-                // Em um app real, você precisaria de um plugin que manipulasse
-                // o ciclo de renderização do jogo nativo, o que é complexo.
-            } else {
-                alert("Por favor, digite um valor válido entre 10 e 120.");
-            }
-        }
+        // 4. Mostrar/Esconder FPS
+        document.getElementById('toggle-fps').addEventListener('click', () => {
+            const el = document.getElementById('fps-display');
+            el.style.display = el.style.display === 'block' ? 'none' : 'block';
+        });
 
-        // --- 4. MUDAR COR DO FLUXO (Amarelo <-> Vermelho) ---
-        function toggleColorTheme() {
-            isRedTheme = !isRedTheme;
-            const root = document.documentElement; // Pega o <html>
+        // 5. Mudar Cor
+        document.getElementById('change-color').addEventListener('click', () => {
+            isRed = !isRed;
+            document.documentElement.style.setProperty('--main-color', isRed ? '#ff0000' : '#ffd700');
+            if (Haptics) Haptics.impact({ style: 'LIGHT' });
+        });
 
-            if (isRedTheme) {
-                // Tema Vermelho
-                root.style.setProperty('--main-color', '#ff3333');
-                root.style.setProperty('--main-glow', '0 0 10px rgba(255, 51, 51, 0.4)');
-            } else {
-                // Tema Amarelo (Padrão)
-                root.style.removeProperty('--main-color');
-                root.style.removeProperty('--main-glow');
-            }
-        }
-
-        // --- 5. LÓGICA DE VELOCIDADE DA ANIMAÇÃO (Por FPS) ---
-        // Muda a duração da animação CSS baseada no FPS atual (currentFPS)
-        function updateAnimationSpeed() {
+        function updateAnimationSpeed(fps) {
             const body = document.body;
-            let duration = '0.8s'; // Padrão
-
-            if (currentFPS < 15) {
-                duration = '0.3s'; // Muito rápido (para parecer que está sob esforço)
-            } else if (currentFPS > 35) {
-                duration = '1.5s'; // Lento e suave (estável)
-            }
-
-            body.style.animationDuration = duration;
+            body.style.animationDuration = fps < 20 ? '0.3s' : '1.5s';
         }
-
     </script>
 </body>
 </html>
