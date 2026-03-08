@@ -20,25 +20,25 @@ jobs:
 
       - name: Instalar e Construir
         run: |
-          # 1. Instalação limpa (ignorando scripts de build que podem travar)
+          # 1. Instalação limpa ignorando scripts problemáticos
           npm install --ignore-scripts
           
           # 2. Adiciona plataforma Android
           npx cap add android || true
           
-          # 4. Configurar Manifest e Permissões (O coração do Overlay)
+          # 3. Configurar Permissões e Tema Transparente
           npx cap update
           MANIFEST="android/app/src/main/AndroidManifest.xml"
           
-          # Injetar permissão de sobreposição
+          # Injeção de permissões de sobreposição e câmera
           sed -i '/<application/i \    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />' $MANIFEST
           sed -i '/<application/i \    <uses-permission android:name="android.permission.CAMERA" />' $MANIFEST
           sed -i '/<application/i \    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />' $MANIFEST
 
-          # MIUI Fix: Tema Transparente
+          # MIUI Fix: Forçar tema transparente
           sed -i 's/android:theme="@style\/AppTheme.NoActionBar"/android:theme="@style\/AppTheme.Transparent"/g' $MANIFEST
 
-          # 5. Criar arquivo de Estilos para Segundo Plano Real
+          # 4. Criar Estilo Flutuante
           STYLES_DIR="android/app/src/main/res/values"
           mkdir -p $STYLES_DIR
           echo '<?xml version="1.0" encoding="utf-8"?>
@@ -52,7 +52,7 @@ jobs:
               </style>
           </resources>' > "$STYLES_DIR/styles.xml"
 
-          # 6. Sincronizar e Compilar APK
+          # 5. Sincronizar e Compilar
           npx cap sync
           cd android && chmod +x gradlew && ./gradlew assembleDebug
 
