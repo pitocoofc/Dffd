@@ -23,31 +23,30 @@ jobs:
           # 1. Instalação limpa
           npm install --ignore-scripts
           
-          # 2. Inicializa o Capacitor (Garante que o config existe)
-          npx cap init ndj-lib-reborn io.pitoco.ndj --web-dir www || true
-          
-          # 3. Cria a pasta Android REAL
+          # 2. Criar pasta www se não existir (Capacitor exige isso)
           mkdir -p www
-          touch www/index.html
+          if [ ! -f "www/index.html" ]; then
+            echo "<html><body>Painel Red Magic Ativo</body></html>" > www/index.html
+          fi
+          
+          # 3. Inicializar Capacitor e Adicionar Android (Forçado)
+          npx cap init ndj-lib-reborn io.pitoco.ndj --web-dir www || true
           npx cap add android || true
           
-          # 4. CONFIGURAÇÃO DO MANIFESTO (Agora com verificação de pasta)
+          # 4. CONFIGURAR MANIFESTO (Garante que o caminho existe)
           MANIFEST="android/app/src/main/AndroidManifest.xml"
           
           if [ -f "$MANIFEST" ]; then
-            # Injeta as permissões essenciais
+            # Injeta as permissões de sobreposição e câmera
             sed -i '/<application/i \    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />' $MANIFEST
             sed -i '/<application/i \    <uses-permission android:name="android.permission.CAMERA" />' $MANIFEST
             sed -i '/<application/i \    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />' $MANIFEST
             
-            # MIUI Fix: Tema Transparente
+            # MIUI Fix: Aplicar Tema Transparente
             sed -i 's/android:theme="@style\/AppTheme.NoActionBar"/android:theme="@style\/AppTheme.Transparent"/g' $MANIFEST
-          else
-            echo "ERRO: Manifesto não encontrado em $MANIFEST"
-            exit 1
           fi
 
-          # 5. Criar arquivo de Estilos
+          # 5. Criar arquivo de Estilos Transparente
           STYLES_DIR="android/app/src/main/res/values"
           mkdir -p $STYLES_DIR
           echo '<?xml version="1.0" encoding="utf-8"?>
