@@ -20,25 +20,34 @@ jobs:
 
       - name: Instalar e Construir
         run: |
-          # 1. Instalação limpa ignorando scripts problemáticos
+          # 1. Instalação limpa
           npm install --ignore-scripts
           
-          # 2. Adiciona plataforma Android
+          # 2. Inicializa o Capacitor (Garante que o config existe)
+          npx cap init ndj-lib-reborn io.pitoco.ndj --web-dir www || true
+          
+          # 3. Cria a pasta Android REAL
+          mkdir -p www
+          touch www/index.html
           npx cap add android || true
           
-          # 3. Configurar Permissões e Tema Transparente
-          npx cap update
+          # 4. CONFIGURAÇÃO DO MANIFESTO (Agora com verificação de pasta)
           MANIFEST="android/app/src/main/AndroidManifest.xml"
           
-          # Injeção de permissões de sobreposição e câmera
-          sed -i '/<application/i \    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />' $MANIFEST
-          sed -i '/<application/i \    <uses-permission android:name="android.permission.CAMERA" />' $MANIFEST
-          sed -i '/<application/i \    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />' $MANIFEST
+          if [ -f "$MANIFEST" ]; then
+            # Injeta as permissões essenciais
+            sed -i '/<application/i \    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />' $MANIFEST
+            sed -i '/<application/i \    <uses-permission android:name="android.permission.CAMERA" />' $MANIFEST
+            sed -i '/<application/i \    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />' $MANIFEST
+            
+            # MIUI Fix: Tema Transparente
+            sed -i 's/android:theme="@style\/AppTheme.NoActionBar"/android:theme="@style\/AppTheme.Transparent"/g' $MANIFEST
+          else
+            echo "ERRO: Manifesto não encontrado em $MANIFEST"
+            exit 1
+          fi
 
-          # MIUI Fix: Forçar tema transparente
-          sed -i 's/android:theme="@style\/AppTheme.NoActionBar"/android:theme="@style\/AppTheme.Transparent"/g' $MANIFEST
-
-          # 4. Criar Estilo Flutuante
+          # 5. Criar arquivo de Estilos
           STYLES_DIR="android/app/src/main/res/values"
           mkdir -p $STYLES_DIR
           echo '<?xml version="1.0" encoding="utf-8"?>
@@ -52,7 +61,7 @@ jobs:
               </style>
           </resources>' > "$STYLES_DIR/styles.xml"
 
-          # 5. Sincronizar e Compilar
+          # 6. Sincronizar e Compilar
           npx cap sync
           cd android && chmod +x gradlew && ./gradlew assembleDebug
 
