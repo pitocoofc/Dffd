@@ -21,7 +21,7 @@ jobs:
       - name: Instalar e Construir
         run: |
           
-          yes | sdkmanager --licenses || true
+          
 
           
           npm install --ignore-scripts
