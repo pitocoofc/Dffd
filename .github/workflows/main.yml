@@ -20,32 +20,25 @@ jobs:
 
       - name: Instalar e Construir
         run: |
-          # 1. Instala dependências limpas
-          npm install
-          npm install @capacitor/assets --save-dev
+          # 1. Instalação limpa (ignorando scripts de build que podem travar)
+          npm install --ignore-scripts
           
-          # 2. Prepara plataforma Android
+          # 2. Adiciona plataforma Android
           npx cap add android || true
           
-          # 3. Gerar ícones se existir icon.png
-          if [ -f "icon.png" ]; then
-            npx capacitor-assets generate --android
-          fi
-
-          # 4. Configurar Manifest e Permissões de Sobreposição
+          # 4. Configurar Manifest e Permissões (O coração do Overlay)
           npx cap update
           MANIFEST="android/app/src/main/AndroidManifest.xml"
           
-          # Injetar permissão de sobreposição e câmera
+          # Injetar permissão de sobreposição
           sed -i '/<application/i \    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />' $MANIFEST
-          sed -i '/<application/i \    <uses-permission android:name="android.permission.ACTION_MANAGE_OVERLAY_PERMISSION" />' $MANIFEST
           sed -i '/<application/i \    <uses-permission android:name="android.permission.CAMERA" />' $MANIFEST
           sed -i '/<application/i \    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />' $MANIFEST
 
-          # Alterar tema para Transparente (MIUI Fix)
+          # MIUI Fix: Tema Transparente
           sed -i 's/android:theme="@style\/AppTheme.NoActionBar"/android:theme="@style\/AppTheme.Transparent"/g' $MANIFEST
 
-          # 5. Criar arquivo de Estilos Transparente
+          # 5. Criar arquivo de Estilos para Segundo Plano Real
           STYLES_DIR="android/app/src/main/res/values"
           mkdir -p $STYLES_DIR
           echo '<?xml version="1.0" encoding="utf-8"?>
@@ -56,11 +49,10 @@ jobs:
                   <item name="android:windowContentOverlay">@null</item>
                   <item name="android:windowNoTitle">true</item>
                   <item name="android:backgroundDimEnabled">false</item>
-                  <item name="android:windowIsFloating">false</item>
               </style>
           </resources>' > "$STYLES_DIR/styles.xml"
 
-          # 6. Sincronizar e Compilar
+          # 6. Sincronizar e Compilar APK
           npx cap sync
           cd android && chmod +x gradlew && ./gradlew assembleDebug
 
