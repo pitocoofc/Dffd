@@ -20,40 +20,32 @@ jobs:
 
       - name: Instalar e Construir
         run: |
-          # 1. Instala dependências
+          # 1. Instala dependências limpas
           npm install
           npm install @capacitor/assets --save-dev
           
-          # 2. Adiciona plataforma Android
+          # 2. Prepara plataforma Android
           npx cap add android || true
           
-          # 3. GERAR ÍCONES (Se houver icon.png)
+          # 3. Gerar ícones se existir icon.png
           if [ -f "icon.png" ]; then
             npx capacitor-assets generate --android
           fi
 
-          # 4. ATUALIZAR E CONFIGURAR MANIFESTO
+          # 4. Configurar Manifest e Permissões de Sobreposição
           npx cap update
           MANIFEST="android/app/src/main/AndroidManifest.xml"
           
-          # Injetar todas as permissões necessárias (incluindo sobreposição e câmera)
-          sed -i '/<application/i \    <uses-permission android:name="android.permission.INTERNET" />' $MANIFEST
-          sed -i '/<application/i \    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />' $MANIFEST
+          # Injetar permissão de sobreposição e câmera
           sed -i '/<application/i \    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />' $MANIFEST
           sed -i '/<application/i \    <uses-permission android:name="android.permission.ACTION_MANAGE_OVERLAY_PERMISSION" />' $MANIFEST
           sed -i '/<application/i \    <uses-permission android:name="android.permission.CAMERA" />' $MANIFEST
           sed -i '/<application/i \    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />' $MANIFEST
-          sed -i '/<application/i \    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />' $MANIFEST
-          sed -i '/<application/i \    <uses-permission android:name="android.permission.WAKE_LOCK" />' $MANIFEST
-          sed -i '/<application/i \    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />' $MANIFEST
-          sed -i '/<application/i \    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />' $MANIFEST
-          sed -i '/<application/i \    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />' $MANIFEST
 
-          # Alterar o tema da Activity para Transparente no Manifest
+          # Alterar tema para Transparente (MIUI Fix)
           sed -i 's/android:theme="@style\/AppTheme.NoActionBar"/android:theme="@style\/AppTheme.Transparent"/g' $MANIFEST
 
-          # 5. CRIAR ESTILO TRANSPARENTE (Styles.xml)
-          # Isso garante que o fundo do app seja invisível
+          # 5. Criar arquivo de Estilos Transparente
           STYLES_DIR="android/app/src/main/res/values"
           mkdir -p $STYLES_DIR
           echo '<?xml version="1.0" encoding="utf-8"?>
@@ -68,7 +60,7 @@ jobs:
               </style>
           </resources>' > "$STYLES_DIR/styles.xml"
 
-          # 6. SINCRONIZAR E COMPILAR
+          # 6. Sincronizar e Compilar
           npx cap sync
           cd android && chmod +x gradlew && ./gradlew assembleDebug
 
