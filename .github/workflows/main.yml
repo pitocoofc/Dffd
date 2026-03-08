@@ -20,26 +20,27 @@ jobs:
 
       - name: Instalar e Construir
         run: |
-          # 1. Instala dependências (lerá o package.json sem comentários)
+          # 1. Instala dependências
           npm install
           npm install @capacitor/assets --save-dev
           
-          # 2. Adiciona plataforma Android se não existir
+          # 2. Adiciona plataforma Android
           npx cap add android || true
           
-          # 3. GERAR ÍCONES (Se houver icon.png na raiz)
+          # 3. GERAR ÍCONES (Se houver icon.png)
           if [ -f "icon.png" ]; then
             npx capacitor-assets generate --android
           fi
 
-          # 4. CONFIGURAR PERMISSÕES NO MANIFEST
+          # 4. ATUALIZAR E CONFIGURAR MANIFESTO
           npx cap update
           MANIFEST="android/app/src/main/AndroidManifest.xml"
           
-          # Inserindo permissões vitais para o painel estilo Red Magic
+          # Injetar todas as permissões necessárias (incluindo sobreposição e câmera)
           sed -i '/<application/i \    <uses-permission android:name="android.permission.INTERNET" />' $MANIFEST
           sed -i '/<application/i \    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />' $MANIFEST
           sed -i '/<application/i \    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />' $MANIFEST
+          sed -i '/<application/i \    <uses-permission android:name="android.permission.ACTION_MANAGE_OVERLAY_PERMISSION" />' $MANIFEST
           sed -i '/<application/i \    <uses-permission android:name="android.permission.CAMERA" />' $MANIFEST
           sed -i '/<application/i \    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />' $MANIFEST
           sed -i '/<application/i \    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />' $MANIFEST
@@ -47,11 +48,28 @@ jobs:
           sed -i '/<application/i \    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />' $MANIFEST
           sed -i '/<application/i \    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />' $MANIFEST
           sed -i '/<application/i \    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />' $MANIFEST
-          
-          # 5. Sincroniza arquivos da pasta www para o projeto Android
+
+          # Alterar o tema da Activity para Transparente no Manifest
+          sed -i 's/android:theme="@style\/AppTheme.NoActionBar"/android:theme="@style\/AppTheme.Transparent"/g' $MANIFEST
+
+          # 5. CRIAR ESTILO TRANSPARENTE (Styles.xml)
+          # Isso garante que o fundo do app seja invisível
+          STYLES_DIR="android/app/src/main/res/values"
+          mkdir -p $STYLES_DIR
+          echo '<?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <style name="AppTheme.Transparent" parent="Theme.AppCompat.NoActionBar">
+                  <item name="android:windowIsTranslucent">true</item>
+                  <item name="android:windowBackground">@android:color/transparent</item>
+                  <item name="android:windowContentOverlay">@null</item>
+                  <item name="android:windowNoTitle">true</item>
+                  <item name="android:backgroundDimEnabled">false</item>
+                  <item name="android:windowIsFloating">false</item>
+              </style>
+          </resources>' > "$STYLES_DIR/styles.xml"
+
+          # 6. SINCRONIZAR E COMPILAR
           npx cap sync
-          
-          # 6. Compilação do APK
           cd android && chmod +x gradlew && ./gradlew assembleDebug
 
       - name: Subir APK
