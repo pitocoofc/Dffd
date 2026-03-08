@@ -20,33 +20,33 @@ jobs:
 
       - name: Instalar e Construir
         run: |
-          # 1. Instalação limpa
+          # 1. Aceitar licenças do Android SDK (Isso resolve o erro do seu último print)
+          yes | sdkmanager --licenses || true
+
+          # 2. Instalação limpa
           npm install --ignore-scripts
           
-          # 2. Criar pasta www se não existir (Capacitor exige isso)
+          # 3. Garantir que a pasta www existe para o Capacitor não chorar
           mkdir -p www
           if [ ! -f "www/index.html" ]; then
             echo "<html><body>Painel Red Magic Ativo</body></html>" > www/index.html
           fi
           
-          # 3. Inicializar Capacitor e Adicionar Android (Forçado)
+          # 4. Forçar reinicialização do Capacitor
+          rm -rf android
           npx cap init ndj-lib-reborn io.pitoco.ndj --web-dir www || true
-          npx cap add android || true
+          npx cap add android
           
-          # 4. CONFIGURAR MANIFESTO (Garante que o caminho existe)
+          # 5. CONFIGURAR MANIFESTO (Injetar permissões de sobreposição)
           MANIFEST="android/app/src/main/AndroidManifest.xml"
+          sed -i '/<application/i \    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />' $MANIFEST
+          sed -i '/<application/i \    <uses-permission android:name="android.permission.CAMERA" />' $MANIFEST
+          sed -i '/<application/i \    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />' $MANIFEST
           
-          if [ -f "$MANIFEST" ]; then
-            # Injeta as permissões de sobreposição e câmera
-            sed -i '/<application/i \    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />' $MANIFEST
-            sed -i '/<application/i \    <uses-permission android:name="android.permission.CAMERA" />' $MANIFEST
-            sed -i '/<application/i \    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />' $MANIFEST
-            
-            # MIUI Fix: Aplicar Tema Transparente
-            sed -i 's/android:theme="@style\/AppTheme.NoActionBar"/android:theme="@style\/AppTheme.Transparent"/g' $MANIFEST
-          fi
+          # MIUI Fix: Tema Transparente
+          sed -i 's/android:theme="@style\/AppTheme.NoActionBar"/android:theme="@style\/AppTheme.Transparent"/g' $MANIFEST
 
-          # 5. Criar arquivo de Estilos Transparente
+          # 6. Criar arquivo de Estilos
           STYLES_DIR="android/app/src/main/res/values"
           mkdir -p $STYLES_DIR
           echo '<?xml version="1.0" encoding="utf-8"?>
@@ -60,7 +60,7 @@ jobs:
               </style>
           </resources>' > "$STYLES_DIR/styles.xml"
 
-          # 6. Sincronizar e Compilar
+          # 7. Sincronizar e Compilar (Debug APK)
           npx cap sync
           cd android && chmod +x gradlew && ./gradlew assembleDebug
 
@@ -69,4 +69,3 @@ jobs:
         with:
           name: ndj-reborn-apk
           path: android/app/build/outputs/apk/debug/*.apk
-          
