@@ -24,7 +24,6 @@ jobs:
           
 
           
-          npm install --ignore-scripts
           
               mkdir -p www
           if [ ! -f "www/index.html" ]; then
